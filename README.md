@@ -54,7 +54,7 @@ stall.
 ## Install
 
 ```bash
-npx expo install mo-bg-location
+npx expo install @aalillou/mo-bg-location
 ```
 
 This is an Expo module with a config plugin. In a managed app, run a prebuild
