@@ -1,0 +1,47 @@
+// swift-interface-format-version: 1.0
+// swift-compiler-version: Apple Swift version 6.0.2 effective-5.10 (swiftlang-6.0.2.1.2 clang-1600.0.26.4)
+// swift-module-flags: -target arm64-apple-ios16.4 -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -O -enable-bare-slash-regex -module-name MoBGLocationEngine
+// swift-module-flags-ignorable: -no-verify-emitted-module-interface
+import CoreLocation
+import CoreMotion
+import CryptoKit
+import FirebaseAuth
+import FirebaseCore
+import FirebaseDatabase
+import Foundation
+import MetricKit
+@_exported import MoBGLocationEngine
+import Swift
+import UIKit
+import _Concurrency
+import _StringProcessing
+import _SwiftConcurrencyShims
+import os
+@_hasMissingDesignatedInitializers final public class MoBGEngine {
+  public static let shared: MoBGLocationEngine.MoBGEngine
+  final public var onLocation: (([Swift.String : Any?]) -> Swift.Void)?
+  final public var onMotionChange: (([Swift.String : Any?]) -> Swift.Void)?
+  final public var onMotionWake: (([Swift.String : Any?]) -> Swift.Void)?
+  final public var onDiagnostic: (([Swift.String : Any?]) -> Swift.Void)?
+  final public var isTracking: Swift.Bool {
+    get
+  }
+  final public func configure(_ config: [Swift.String : Any])
+  final public func start() throws
+  final public func stop()
+  final public func detachCallbacks()
+  final public func reviveAtLaunch()
+  final public func getCurrentPosition(_ completion: @escaping (Swift.Result<[Swift.String : Any?], any Swift.Error>) -> Swift.Void)
+  final public func permissions() -> [Swift.String : Any]
+  final public func requestPermissions(background: Swift.Bool, activity: Swift.Bool, _ completion: @escaping ([Swift.String : Any]) -> Swift.Void)
+  final public func getPowerStats() throws -> [Swift.String : Any]
+  final public func resetPowerStats() throws -> [Swift.String : Any]
+  @objc deinit
+}
+public enum MoBGEngineError : Swift.Error {
+  case permissionDenied
+  case noLocation
+  case locationFailed(Swift.String)
+  case notImplemented(Swift.String)
+  case licenseInvalid(Swift.String)
+}

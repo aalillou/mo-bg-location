@@ -1,0 +1,20 @@
+{
+  "platforms": [
+    "android",
+    "apple"
+  ],
+  "apple": {
+    "podspecPath": "MoBGLocation.podspec",
+    "modules": [
+      "MoBGLocationModule"
+    ],
+    "appDelegateSubscribers": [
+      "MoBGLocationAppDelegateSubscriber"
+    ]
+  },
+  "android": {
+    "modules": [
+      "expo.modules.mobglocation.MoBGLocationModule"
+    ]
+  }
+}

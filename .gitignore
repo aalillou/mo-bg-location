@@ -1,0 +1,41 @@
+.vscode
+
+# Ignore locally generates ./docs
+docs/
+
+.DS_Store
+node_modules/**/*
+
+# Xcode
+#
+build/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata
+*.xccheckout
+*.moved-aside
+DerivedData
+*.hmap
+*.ipa
+*.xcuserstate
+
+npm-debug.log
+
+android/.idea
+
+package-lock.json
+
+*.tgz
+
+yarn.lock
+
+# Expo build
+plugin/build/**
+
+*.log

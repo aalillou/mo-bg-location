@@ -1,0 +1,11 @@
+framework module MoBGLocationEngine {
+  umbrella header "MoBGLocationEngine.h"
+  export *
+
+  module * { export * }
+}
+
+module MoBGLocationEngine.Swift {
+  header "MoBGLocationEngine-Swift.h"
+  requires objc
+}

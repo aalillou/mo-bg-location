@@ -1,0 +1,104 @@
+mo-bg-location — Software License Agreement
+
+Copyright (c) 2026 Aalillou <info@aalillou.be>. All rights reserved.
+
+"Licensor" means Aalillou.
+
+The mo-bg-location SDK — the JavaScript API, the Expo config plugin, the prebuilt
+native engine binaries (Android .aar, iOS .xcframework) and the accompanying source
+shims (together, the "Software") — is proprietary and is LICENSED, NOT SOLD.
+
+By installing, linking against, or otherwise using the Software you agree to these
+terms. If you do not agree, do not use the Software.
+
+
+1. LICENSE
+
+   Development is free. You may use the Software without charge to evaluate,
+   develop, and test. The Software is fully functional in debug builds; no license
+   key is required.
+
+   Production requires a license. Distributing an application that includes the
+   Software requires a valid license key issued by the Licensor. The key is bound
+   to your application's Android package name and/or iOS bundle identifier. Subject
+   to a valid key and payment of the applicable fees, you are granted a
+   non-exclusive, non-transferable, non-sublicensable license to integrate the
+   Software into your applications and to distribute it in object-code form solely
+   as an inseparable part of those applications.
+
+
+2. RESTRICTIONS
+
+   You may not:
+
+   (a) redistribute, publish, sublicense, rent, sell, or otherwise make the
+       Software available as a standalone library, SDK, or development component;
+
+   (b) reverse engineer, decompile, disassemble, or de-obfuscate the native engine
+       binaries, except where applicable law expressly permits this despite this
+       restriction (including Article 6 of EU Directive 2009/24/EC, for
+       interoperability, and only after you have asked the Licensor for the
+       necessary information and it was not supplied within a reasonable time);
+
+   (c) circumvent, disable, or tamper with the license-key validation; or
+
+   (d) remove or obscure any copyright or proprietary notice.
+
+
+3. OWNERSHIP
+
+   The Licensor retains all right, title, and interest in the Software, including
+   all intellectual property rights. You receive only the rights expressly granted
+   above.
+
+
+4. THIRD-PARTY COMPONENTS
+
+   The native engine binaries contain no third-party code. The Software requires,
+   but does not redistribute, components such as Expo, React Native, Firebase, and
+   Google Play services; you obtain those directly and use them under their own
+   terms. See THIRD-PARTY-NOTICES.md.
+
+
+5. DATA AND END USERS
+
+   The Software collects device location and motion data on your behalf and sends
+   it only where you configure. The Licensor is not a controller of that data. You
+   are responsible for obtaining end-user consent and for complying with applicable
+   privacy law and with Apple App Store and Google Play requirements for
+   background-location collection.
+
+
+6. NO WARRANTY
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+   PURPOSE, AND NON-INFRINGEMENT. THE LICENSOR DOES NOT WARRANT THAT THE SOFTWARE
+   WILL BE UNINTERRUPTED OR ERROR-FREE, OR THAT LOCATION OR ACTIVITY WILL BE
+   DETECTED OR CLASSIFIED WITH ANY PARTICULAR ACCURACY. THE SOFTWARE IS NOT
+   INTENDED FOR EMERGENCY, LIFE-SAFETY, OR OTHER HIGH-RISK USE.
+
+
+7. LIMITATION OF LIABILITY
+
+   TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE LICENSOR SHALL NOT BE LIABLE FOR ANY
+   INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES, OR FOR ANY LOSS OF
+   PROFITS, REVENUE, OR DATA. THE LICENSOR'S TOTAL LIABILITY SHALL NOT EXCEED THE
+   FEES YOU PAID FOR THE SOFTWARE IN THE TWELVE MONTHS BEFORE THE CLAIM AROSE.
+   Nothing here excludes liability that cannot be excluded by law.
+
+
+8. TERM AND TERMINATION
+
+   This agreement applies until terminated. It terminates automatically if you
+   breach it. On termination you must stop using the Software and destroy your
+   copies. Sections 2 through 7 survive.
+
+
+9. GOVERNING LAW
+
+   This agreement is governed by the laws of Belgium, and the courts of Belgium
+   have exclusive jurisdiction.
+
+
+Licensing enquiries: info@aalillou.be

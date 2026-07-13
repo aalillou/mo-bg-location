@@ -1,0 +1,52 @@
+// PUBLIC (binary) build.gradle — generated into the published package by
+// internal/module_scripts/pack-public.js. Do not edit the generated copy; edit
+// this template. See docs/mo-bg-as-commercial-SDK.md (Locked Decisions, #3).
+//
+// Contrast with the PRIVATE source android/build.gradle, which compiles
+// android/src/main/java/**. This one links the ENGINE as a prebuilt,
+// obfuscated AAR and re-declares the transitive dependencies.
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.mobglocation'
+version = '0.1.0'
+
+android {
+  namespace "expo.modules.mobglocation"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  // ENGINE: the whole module (foreground service, receivers, classifier, RTDB
+  // sink, power ledger, and the Expo Module) ships as one obfuscated AAR.
+  // Android needs no source shim — JVM ABI is stable and the AAR is prebuilt,
+  // so the host app never recompiles it (decision #3).
+  //
+  // MUST be `api`, not `implementation`. Expo's autolinking generates
+  // expo/android/.../ExpoModulesPackageList.kt in the HOST app, which references
+  // expo.modules.mobglocation.MoBGLocationModule by name and is compiled by the
+  // :expo gradle project. `implementation` keeps the AAR on THIS project's own
+  // compile classpath only and does not expose it to consumers of this project,
+  // so :expo fails with "Unresolved reference 'MoBGLocationModule'". `api`
+  // publishes the AAR's classes to the consuming projects. Caught by the
+  // functional consumer run (2026-07-11).
+  api files("libs/mobg-location-release.aar")
+
+  // Transitive deps re-declared: an AAR carries no POM, so the host app must
+  // resolve these itself. The Firebase BoM stays the deliberate compile-old /
+  // run-new pin from the source build.gradle: the AAR is compiled against the
+  // stable 33.16.0 API, and Gradle's highest-wins resolution unifies onto the
+  // app's newer Firebase SDK at runtime.
+  implementation "com.google.android.gms:play-services-location:21.3.0"
+  implementation platform("com.google.firebase:firebase-bom:33.16.0")
+  implementation "com.google.firebase:firebase-database"
+  implementation "com.google.firebase:firebase-auth"
+}

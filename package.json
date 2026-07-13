@@ -1,0 +1,42 @@
+{
+  "name": "mo-bg-location",
+  "version": "0.1.0",
+  "description": "Background geolocation Expo module with a self-computed activity classifier (binary distribution).",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "sideEffects": false,
+  "keywords": [
+    "react-native",
+    "expo",
+    "mo-bg-location",
+    "MoBGLocation",
+    "background-location",
+    "geolocation"
+  ],
+  "repository": "https://github.com/aalillou/mo-bg-location",
+  "bugs": {
+    "url": "https://github.com/aalillou/mo-bg-location/issues"
+  },
+  "author": "Aalillou <info@aalillou.be>",
+  "license": "SEE LICENSE IN LICENSE",
+  "homepage": "https://github.com/aalillou/mo-bg-location#readme",
+  "files": [
+    "build",
+    "plugin/build",
+    "android",
+    "ios",
+    "app.plugin.js",
+    "expo-module.config.json",
+    "MoBGLocation.podspec",
+    "README.md",
+    "LICENSE",
+    "THIRD-PARTY-NOTICES.md",
+    "CHANGELOG.md"
+  ],
+  "dependencies": {},
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}
