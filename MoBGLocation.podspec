@@ -7,7 +7,7 @@
 # prebuilt xcframework and keeps only the thin Expo SHIM as source.
 Pod::Spec.new do |s|
   s.name           = 'MoBGLocation'
-  s.version        = '0.1.0'
+  s.version        = '0.1.4'
   s.summary        = 'Background location tracking with a self-computed activity classifier'
   s.description    = 'Background location engine with a self-computed activity classifier and a battery-aware motion state machine (binary distribution).'
   s.author         = { 'Aalillou' => 'info@aalillou.be' }

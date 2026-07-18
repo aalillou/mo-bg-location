@@ -1,6 +1,6 @@
 {
   "name": "@aalillou/mo-bg-location",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "Background geolocation Expo module with a self-computed activity classifier (binary distribution).",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -33,12 +33,10 @@
     "THIRD-PARTY-NOTICES.md",
     "CHANGELOG.md"
   ],
+  "dependencies": {},
   "peerDependencies": {
     "expo": "*",
     "react": "*",
     "react-native": "*"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }

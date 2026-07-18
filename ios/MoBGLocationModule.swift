@@ -39,8 +39,21 @@ public class MoBGLocationModule: Module {
 
     Events("onLocation", "onMotionChange", "onMotionWake", "onDiagnostic")
 
-    AsyncFunction("configure") { (config: [String: Any]) in
-      self.engine.configure(config)
+    AsyncFunction("configure") { (config: [String: Any]) throws in
+      do {
+        try self.engine.configure(config)
+      } catch {
+        throw Self.expoError(from: error)
+      }
+    }.runOnQueue(.main)
+
+    // Output template (docs/24): replace the mutable `{extra.*}` bag.
+    AsyncFunction("setSyncExtras") { (extras: [String: Any]) throws in
+      do {
+        try self.engine.setSyncExtras(extras)
+      } catch {
+        throw Self.expoError(from: error)
+      }
     }.runOnQueue(.main)
 
     AsyncFunction("start") { () throws in
@@ -122,6 +135,8 @@ public class MoBGLocationModule: Module {
     case .locationFailed(let message): return LocationFailedException(message)
     case .notImplemented(let name): return NotYetImplementedException(name)
     case .licenseInvalid(let message): return LicenseException(message)
+    case .syncTemplateInvalid(let message): return SyncTemplateException(message)
+    case .syncExtrasInvalid(let message): return SyncExtrasException(message)
     // In the BINARY build the engine is a separate module compiled with library
     // evolution, so MoBGEngineError is resilient (non-frozen) and the compiler
     // requires this clause. Unreachable in practice: engine and shim ship
@@ -167,5 +182,19 @@ internal final class EngineException: GenericException<String>, @unchecked Senda
 /// `param` is the customer-facing reason from the engine's license verdict.
 internal final class LicenseException: GenericException<String>, @unchecked Sendable {
   override var code: String { "ERR_LICENSE" }
+  override var reason: String { param }
+}
+
+/// Output template (docs/24): `configure()` was given a template the core
+/// rejected. `param` is the core's error list — the same strings the Kotlin twin
+/// produces, so a consumer sees one message per platform.
+internal final class SyncTemplateException: GenericException<String>, @unchecked Sendable {
+  override var code: String { "ERR_SYNC_TEMPLATE" }
+  override var reason: String { param }
+}
+
+/// Output template (docs/24): an illegal `setSyncExtras()` bag.
+internal final class SyncExtrasException: GenericException<String>, @unchecked Sendable {
+  override var code: String { "ERR_SYNC_EXTRAS" }
   override var reason: String { param }
 }

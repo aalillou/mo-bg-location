@@ -26,7 +26,8 @@ import os
   final public var isTracking: Swift.Bool {
     get
   }
-  final public func configure(_ config: [Swift.String : Any])
+  final public func configure(_ config: [Swift.String : Any]) throws
+  final public func setSyncExtras(_ extras: [Swift.String : Any]) throws
   final public func start() throws
   final public func stop()
   final public func detachCallbacks()
@@ -44,4 +45,6 @@ public enum MoBGEngineError : Swift.Error {
   case locationFailed(Swift.String)
   case notImplemented(Swift.String)
   case licenseInvalid(Swift.String)
+  case syncTemplateInvalid(Swift.String)
+  case syncExtrasInvalid(Swift.String)
 }

@@ -44,10 +44,12 @@ stall.
   10–77 m from wheels rolling to first location update in field tests. Classic
   geofence-exit approaches measured at ~60–90 s on the same hardware.
 
-- **Delivery that survives a killed JS context.** The optional native RTDB sink
-  writes location, motion, and diagnostic events from the native foreground
-  service (Android) or `TrackingRuntime` (iOS) — with no JS alive. Useful for
-  fleet or logistics apps that need a full track without a foreground UI.
+- **Delivery that survives a killed JS context — into *your* database shape.**
+  The optional native RTDB sink writes location, motion, and diagnostic events
+  from the native foreground service (Android) or `TrackingRuntime` (iOS) with
+  no JS alive — and an [output template](#nativesynctemplate--writing-your-own-rtdb-shape)
+  lets you declare the exact paths and value tree it writes, so the events land
+  in the schema your app already reads instead of one imposed by the SDK.
 
 ---
 
@@ -64,6 +66,23 @@ declarations, and iOS background modes:
 ```bash
 npx expo prebuild
 ```
+
+### iOS: apps that don't already use Firebase
+
+The SDK's optional native Firebase sink links the Firebase iOS pods. If your
+app does **not** already depend on React Native Firebase, `pod install` fails
+on Firebase's modular headers unless CocoaPods builds frameworks statically.
+Add [`expo-build-properties`](https://docs.expo.dev/versions/latest/sdk/build-properties/)
+to your `app.json`:
+
+```jsonc
+"plugins": [
+  ["expo-build-properties", { "ios": { "useFrameworks": "static" } }]
+]
+```
+
+(Apps already on `@react-native-firebase/*` have this set — its install docs
+require the same flag.)
 
 ### Supported Expo SDK range
 
@@ -88,7 +107,7 @@ import {
   onLocation,
   onMotionChange,
   onMotionWake,
-} from 'mo-bg-location';
+} from '@aalillou/mo-bg-location';
 
 // 1. Configure before requesting permissions or starting
 await configure({
@@ -165,7 +184,9 @@ await configure({
 
   // ── Native RTDB sink (optional, for Firebase-backed apps) ─────────────
   nativeSync: false,           // true = native layer writes events to RTDB
-  nativeSyncRootPath: '/tests/locations',
+  nativeSyncRootPath: '/tests/locations',   // built-in schema only
+  nativeSyncTemplate: undefined,            // your own paths + value tree
+  nativeSyncParams:   undefined,            // static {param.*} values
 
   // ── License (required for release builds) ─────────────────────────────
   licenseKey: process.env.EXPO_PUBLIC_MOBG_LICENSE_KEY,
@@ -253,11 +274,147 @@ swipe-kill, JS crash, or an OS-initiated background relaunch that never warms
 up the JS layer.
 
 Requires a default `FirebaseApp` in the host app (add `google-services.json`
-/ `GoogleService-Info.plist` and call `configure()` in the native layer). The
-module reuses the anonymous-auth UID created by the JS side as `driverId`.
+/ `GoogleService-Info.plist` and call `configure()` in the native layer).
+Without a template (below) the sink writes the SDK's **built-in schema** under
+`nativeSyncRootPath`, keyed by the anonymous-auth UID the JS side creates.
 
 **Single-writer rule:** when `nativeSync` is on, disable JS-side sink writes
 to avoid duplicating events under two session keys.
+
+### `nativeSyncTemplate` — writing your own RTDB shape
+
+The built-in schema is almost certainly not the tree your app reads. A
+**template** tells the native sink exactly which paths to write and what value
+tree to put there — so you keep everything that makes the native sink worth
+having (delivery that survives a dead JS context, offline queueing, background
+writes) while the data lands in *your* shape.
+
+`nativeSync: true` is still the master switch: the template says *what* to
+write, that flag says *whether* the native layer writes at all. When a template
+is set, `nativeSyncRootPath` is ignored — template paths are absolute.
+
+```ts
+await configure({
+  // … tracking config …
+
+  nativeSync: true,
+  nativeSyncParams: {                 // static identity → {param.*}
+    sessionKey: 'shift-42',
+    nodeKey: '12_Doe',
+    driverId: 12,
+  },
+  nativeSyncTemplate: {
+    targets: [
+      {
+        trigger: 'location',
+        path: 'fleet/locations/{param.sessionKey}/{param.nodeKey}',
+        // A map does not need 1 Hz. Either gate opens the write: a slow crawl
+        // still reports every 5 s, a fast drive reports every 25 m.
+        throttle: { minIntervalMs: 5000, minDistanceM: 25 },
+        // Presence: the server deletes this node when the device goes offline.
+        onDisconnectRemove: true,
+        value: {
+          g: '{geohash}',             // GeoFire-compatible query key
+          l: '{latlng}',              // [lat, lng]
+          data: {
+            driverId: '{param.driverId}',
+            activity: '{activity}',   // still | on_foot | in_vehicle | …
+            updated_at: '{isoTime}',
+            battery: { level: '{battery.level}', is_charging: '{battery.isCharging}' },
+            $extras: true,            // merge in whatever setSyncExtras() holds
+          },
+        },
+      },
+    ],
+  },
+});
+```
+
+**How values resolve**
+
+- A string that is **exactly one placeholder** becomes that native type:
+  `"{lat}"` writes a number, `"{latlng}"` writes an array, `"{isMoving}"` a boolean.
+- A placeholder **inside a longer string** is interpolated as text
+  (`"driver {param.driverId}"`). Fractional numbers (`{lat}`, `{speed}`) may not
+  be embedded this way — use them as exact-one placeholders.
+- A placeholder that **resolves to nothing drops its key** rather than writing `null`.
+
+**Placeholders**
+
+| Scope | Available |
+|-------|-----------|
+| every trigger | `{ts}` `{isoTime}` `{timeLocal}` `{timeKey}` `{sessionId}` `{platform}` `{battery.level}` (0..1) `{battery.isCharging}` `{param.*}` `{extra.*}` |
+| `location` | `{lat}` `{lng}` `{latlng}` `{geohash}` `{accuracy}` `{speed}` `{activity}` `{isMoving}` |
+| `motion` | `{activity}` `{isMoving}` |
+| `wake` | wake reason / displacement fields |
+| `diagnostic` | `{kind}`, plus `"$event": true` to spread the raw event |
+
+**Targets**
+
+| Field | Meaning |
+|-------|---------|
+| `trigger` | `'location'` \| `'motion'` \| `'wake'` \| `'diagnostic'` |
+| `path` | Absolute path from the database root |
+| `mode` | `'set'` (default, overwrite) or `'update'` (merge into the node) |
+| `throttle` | `location` only. `{ minIntervalMs, minDistanceM }` — with both, **either** gate opens the write |
+| `onDisconnectRemove` | Delete the node when the device's connection drops. Static paths only; re-armed on every reconnect, and **not** cancelled by `stop()` — a killed device must not stay on your map forever |
+| `value` | The JSON tree to write |
+
+Up to 8 targets. `"$extras": true` inside an object merges in the
+[`setSyncExtras`](#setsyncextrasextras-promisevoid) bag; explicit keys win.
+
+**Paths are validated, not trusted.** Only placeholders guaranteed to produce a
+legal RTDB key may appear in `path` (`{param.*}`, `{sessionId}`, `{timeKey}`,
+`{activity}`, `{geohash}`, `{ts}`, `{platform}`, `{isMoving}`, `{kind}`). A
+`{lat}` in a path would turn `51.2` into two nested nodes, so `configure()`
+rejects it with **`ERR_SYNC_TEMPLATE`** — as it does for unknown placeholders,
+illegal path characters, and any `{param.*}` you forgot to supply.
+
+**Don't run two writers.** If your JS also writes these paths while `nativeSync`
+is on, you have two writers racing on the same nodes. Pick one.
+
+### Securing template writes
+
+The template writes through **your app's existing Firebase login** — the SDK
+never signs in and never signs out, it inherits whatever user your app already
+authenticated (`FirebaseAuth.getInstance().currentUser`), including that user's
+`auth.uid` and any custom claims. Your **RTDB security rules** are the
+enforcement; the `{param.*}` values in a path are only a *claim* of identity, and
+your rules are what verify the logged-in user is allowed to write there.
+
+Secure it with ordinary rules against that session plus the path — coarsest to
+tightest:
+
+```jsonc
+// 1. Any logged-in user
+"fleet": { "locations": { ".write": "auth != null" } }
+
+// 2. Tenant-scoped — path carries {param.tenant}, rule checks a claim
+"$tenant": { "locations": { ".write": "auth.token.tenant === $tenant" } }
+
+// 3. Per-driver, securing a HUMAN key via a custom claim
+"fleet": { "locations": { "$session": { "$driverKey": {
+  ".write": "auth.token.driverKey === $driverKey"
+} } } }
+```
+
+Pattern 3 is how you secure a path keyed by something like `12_Doe` rather than
+the uid: your backend sets a `driverKey` (or `tenant`, or `role`) **custom claim**
+when the driver logs in, you put `{param.nodeKey}` in the path, and the rule
+cross-checks the path key against the claim. So: **params supply the claimed
+identity, the authenticated session supplies the trusted identity, and your rule
+asserts they match.**
+
+**The revival window.** The whole point of `nativeSync` is writing when no JS is
+alive (swipe-kill, crash, OS background relaunch), so your app's normal sign-in
+code hasn't run. Anonymous and email/password sessions **persist to disk** and a
+revived native process auto-restores and refreshes them, so `auth.uid` and
+token-baked claims survive a kill — rules keyed on them still pass. The exception
+is auth that only *your backend/JS* can mint (a custom-token flow): a revived
+JS-less process may write with a stale or absent token until your app re-auths,
+and those writes are rejected in the gap (logged once, then quiet). Prefer an auth
+whose session persists across process death, or accept that the first few
+post-revival writes may be refused until the next launch.
 
 ---
 
@@ -269,6 +426,8 @@ Stash the configuration. Safe to call at any time, including before permissions
 are granted. Changes take effect at the next `start()` call (or immediately for
 fields that don't require a restart, like `notificationBody`).
 
+Rejects with `ERR_SYNC_TEMPLATE` if `nativeSyncTemplate` is invalid.
+
 ### `requestPermissions(options): Promise<PermissionStatus>`
 
 Request the OS permissions needed for background tracking:
@@ -276,9 +435,17 @@ Request the OS permissions needed for background tracking:
 ```ts
 await requestPermissions({
   background: true,   // ACCESS_BACKGROUND_LOCATION / Always authorization
-  activity: true,     // ACTIVITY_RECOGNITION (Android 10+)
+  activity: true,     // ACTIVITY_RECOGNITION (Android 10+) / Motion & Fitness (iOS)
 });
 ```
+
+The stages run as a ladder, identical on both platforms: **foreground location
+is always requested first**; the background upgrade (Android
+`ACCESS_BACKGROUND_LOCATION` / iOS Always) runs only when `background: true`
+and foreground was granted; the motion stage (Android `ACTIVITY_RECOGNITION` /
+iOS Motion & Fitness) runs only when `activity: true` and foreground was
+granted. The resolved `PermissionStatus` merges the outcome of every stage.
+One combined call is therefore all a typical driver app needs.
 
 ### `getPermissions(): Promise<PermissionStatus>`
 
@@ -286,7 +453,8 @@ Read current permission state without prompting.
 
 ```ts
 const perms = await getPermissions();
-// { foreground: boolean, background: boolean, activity: boolean, notifications: boolean }
+// { foreground: boolean, background: boolean, activity: boolean,
+//   notifications: boolean, precise: boolean }
 ```
 
 ### `start(): Promise<void>`
@@ -306,6 +474,30 @@ One-shot current location (no continuous tracking required).
 ### `getPowerStats(): Promise<PowerStats>`
 
 Read the current battery and power-state snapshot.
+
+### `setSyncExtras(extras): Promise<void>`
+
+Set the mutable values your `nativeSyncTemplate` writes as `{extra.*}` (or
+spreads with `"$extras": true`) — the things that change *during* a shift: a
+booking id, the parcels currently loaded, a status flag. Identity that doesn't
+change belongs in `nativeSyncParams` instead.
+
+**Whole-bag replace, not a merge** — pass everything you want written:
+
+```ts
+await setSyncExtras({ charged: ['pkg-1', 'pkg-2'], bookingId: 42 });
+await setSyncExtras({ charged: [] });   // bookingId is now GONE, not kept
+```
+
+The bag is persisted natively and **survives the JS context dying**, which is
+the point: a process revived without JS keeps writing rows that still carry your
+shift state. It also deliberately survives `stop()` — the next `start()` renders
+with the last bag you set until you replace it. (Dropping it would mean a revived
+process writes rows *missing* your shift state, which is worse than a stale one;
+you always get the chance to overwrite.)
+
+Rejects with `ERR_SYNC_EXTRAS` if a key is not a legal RTDB key, or the bag
+exceeds 16 KB.
 
 ### `onLocation(callback): Subscription`
 
@@ -364,13 +556,14 @@ import {
   configure,
   getPermissions,
   requestPermissions,
+  setSyncExtras,
   start,
   stop,
   onLocation,
   onMotionChange,
   type LocationEvent,
   type MotionEvent,
-} from 'mo-bg-location';
+} from '@aalillou/mo-bg-location';
 import { useEffect, useState } from 'react';
 
 export default function TrackingScreen() {
@@ -391,6 +584,30 @@ export default function TrackingScreen() {
       tightPollWindowMinutes: 45,
       notificationTitle: 'On shift',
       notificationBody: 'Location tracking is active.',
+
+      // Write straight into the tree this app already reads — and keep writing
+      // it even if the OS kills the JS context mid-shift.
+      nativeSync: true,
+      nativeSyncParams: { sessionKey: shiftId, nodeKey: driverKey, driverId },
+      nativeSyncTemplate: {
+        targets: [{
+          trigger: 'location',
+          path: 'fleet/locations/{param.sessionKey}/{param.nodeKey}',
+          throttle: { minIntervalMs: 5000, minDistanceM: 25 },
+          onDisconnectRemove: true,
+          value: {
+            g: '{geohash}',
+            l: '{latlng}',
+            data: {
+              driverId: '{param.driverId}',
+              activity: '{activity}',
+              updated_at: '{isoTime}',
+              $extras: true,        // ← whatever setSyncExtras() holds
+            },
+          },
+        }],
+      },
+
       licenseKey: process.env.EXPO_PUBLIC_MOBG_LICENSE_KEY,
     }).catch(console.error);
 
@@ -407,6 +624,11 @@ export default function TrackingScreen() {
     }
     await start();
     setIsTracking(true);
+  };
+
+  // Shift state that must keep being written even if the app is killed.
+  const handleLoadParcel = async (parcels: string[]) => {
+    await setSyncExtras({ charged: parcels });
   };
 
   const handleStop = async () => {
@@ -456,6 +678,9 @@ plugin. The app must supply `NSLocationWhenInUseUsageDescription`,
 | iOS wake latency > 30 s | iOS < 17 falls back to `'arbiter'`; on iOS 17+ confirm `powerMode: 'liveUpdates'` |
 | Overnight battery drain | `deepIdleAfter` not set or set to 0 — set to `90` (minutes) |
 | `ERR_LICENSE` on start | Release build with no key; see Licensing |
+| `ERR_SYNC_TEMPLATE` on configure | Invalid `nativeSyncTemplate` — the message names the offending target and placeholder |
+| Template tree stays empty | Writes rejected by your security rules (the SDK writes as your app's existing auth — check the device log for the one-time rejection), or `nativeSync` is not `true` |
+| `{extra.*}` values missing from writes | `setSyncExtras` is a whole-bag replace — a later call without a key removes it |
 
 ---
 
